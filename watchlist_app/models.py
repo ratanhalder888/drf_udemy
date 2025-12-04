@@ -24,16 +24,16 @@ class WatchList(models.Model):
         return self.title
 
 class Review(models.Model):
+    watchlist = models.ForeignKey(WatchList, on_delete=models.CASCADE)
     review_user = models.ForeignKey(User, on_delete=models.CASCADE)
     rating = models.PositiveBigIntegerField(validators=[
         MinValueValidator(1, message="Rating must be at least 1."),
         MaxValueValidator(5, message="Rating cannot exceed 5.")
     ])
     description = models.CharField(max_length=200, null=True)
-    watchlist = models.ForeignKey(WatchList, on_delete=models.CASCADE)
     active = models.BooleanField(default=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return str(self.rating) + " " + self.watchlist.title
+        return self.watchlist.title + " | " + str(self.review_user) + " | " + str(self.rating)
