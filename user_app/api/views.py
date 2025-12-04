@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from user_app import models
+from rest_framework.permissions import IsAuthenticated
 
 @api_view(['POST',])
 def registration_view(request):
@@ -45,3 +46,41 @@ class RegistrationView(APIView):
         else:
             data = serializer.errors
         return Response(data)
+     
+
+@api_view(['POST',])
+def logout_view(request):
+
+    if request.method == 'POST':
+        request.user.auth_token.delete()
+        return Response(status=status.HTTP_200_OK)
+    
+
+class LogoutView(APIView):
+    """
+    An API View to log out a user by deleting their authentication token.
+    Requires the user to be authenticated to access this view.
+    """
+    # Ensures only authenticated users can hit this endpoint
+    permission_classes = [IsAuthenticated] 
+
+    def post(self, request):
+        """
+        Handles the logout action.
+        """
+        try:
+            # Delete the user's current authentication token
+            # The 'request.user' is guaranteed to be a User instance due to IsAuthenticated permission
+            request.user.auth_token.delete()
+            
+            return Response(
+                {"message": "Successfully logged out."}, 
+                status=status.HTTP_200_OK
+            )
+            
+        except Exception as e:
+            # Handle cases where the token might already be deleted or missing
+            return Response(
+                {"error": "Failed to log out or token not found."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
