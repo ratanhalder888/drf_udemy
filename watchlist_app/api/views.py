@@ -14,6 +14,8 @@ from watchlist_app.api.permissions import IsAdminOrReadOnly, IsReviewUserOrReadO
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle, ScopedRateThrottle
 from watchlist_app.api.throttling import ReviewCreateThrottle, ReviewListThrottle
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+from watchlist_app.api.pagination import WatchListPagination
 
 
 class UserReview(generics.ListAPIView):
@@ -179,14 +181,33 @@ class StreamPlatformDetailAV(APIView):
         platform = StreamPlatform.objects.get(pk=pk)
         platform.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
+class WatchListGV(generics.ListAPIView):
+    queryset = WatchList.objects.prefetch_related('review_set__review_user').all()
+    serializer_class = WatchListSerializer
+    pagination_class = WatchListPagination
+    #permission_classes = [IsAuthenticated]
+    # throttle_classes = [UserRateThrottle, AnonRateThrottle]
+    # throttle_classes = [ReviewListThrottle]
+
+    # filter_backends = [DjangoFilterBackend]
+    # filterset_fields = ['title', 'platform__name']
+    
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['^title', 'platform__name']
+    
+    # filter_backends = [filters.OrderingFilter]
+    # ordering_fields = ['avg_rating']
 
 
 class WatchListAV(APIView):
     permission_classes = [IsAdminOrReadOnly]
+    throttle_classes = [AnonRateThrottle]
 
     def get(self, request):
-        watchlists = WatchList.objects.prefetch_related('review_set__review_user').all()
-        serializer = WatchListSerializer(watchlists, many=True)
+        queryset = WatchList.objects.prefetch_related('review_set__review_user').all()
+        serializer = WatchListSerializer(queryset, many=True)
         return Response(serializer.data)
     
     def post(self, request):
